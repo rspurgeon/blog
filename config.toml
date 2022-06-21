@@ -1,5 +1,5 @@
 baseURL = ''
-relativeURLs = 'True'
+relativeURLs = 'true'
 languageCode = 'en-us'
 title = 'Developing Ideas'
 theme = 'PaperMod'

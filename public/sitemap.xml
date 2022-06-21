@@ -2,17 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>/blog/api-monetization-how-to/</loc>
+    <loc>https://rspurgeon.github.io/developingideas/blog/api-monetization-how-to/</loc>
     <lastmod>2022-06-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/blog/</loc>
+    <loc>https://rspurgeon.github.io/developingideas/blog/</loc>
     <lastmod>2022-06-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/</loc>
+    <loc>https://rspurgeon.github.io/developingideas/</loc>
     <lastmod>2022-06-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/categories/</loc>
+    <loc>https://rspurgeon.github.io/developingideas/categories/</loc>
   </url><url>
-    <loc>/tags/</loc>
+    <loc>https://rspurgeon.github.io/developingideas/tags/</loc>
   </url>
 </urlset>

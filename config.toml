@@ -1,5 +1,4 @@
-baseURL = 'https://rspurgeon.github.io/'
-relativeURLs = 'true'
+baseURL = 'https://rspurgeon.github.io/blog/'
 languageCode = 'en-us'
 title = 'Developing Ideas'
 theme = 'PaperMod'

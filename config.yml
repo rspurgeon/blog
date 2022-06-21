@@ -1,0 +1,9 @@
+baseURL: 'https://rspurgeon.github.io/developing-ideas/'
+languageCode: en-us
+title: Developing Ideas
+theme: PaperMod
+publishDir: docs
+params:
+  defaultTheme: light
+  disableThemeToggle: false 
+

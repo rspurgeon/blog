@@ -1,0 +1,4 @@
+baseURL = 'https://developingideas.github.io'
+languageCode = 'en-us'
+title = 'Developing Ideas'
+theme = 'PaperMod'

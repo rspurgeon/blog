@@ -4,7 +4,6 @@ Author: Rick Spurgeon
 ---
 
 ## Rick Spurgeon
-
 Senior software architect and developer with 20+ years of experience building 
 software solutions across the FinTech, Electronic Trading, API, and 
 Event Stream Processing spaces.

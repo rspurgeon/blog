@@ -15,39 +15,51 @@ notes:
 ---
 
 "API Monetization" can be viewed as an umbrella term for enabling business 
-action on API utilization by your clients. These actions are often financial 
-in nature, however they can be useful for a variety of other use cases. 
+actions on your client's API utilization. These actions are often financial 
+in nature, however, there are other possible benefits when building towards a 
+monetization solution.
 
-Commonly, you may see the following desired business outcomes:
+Here are some common desired business outcomes:
 
-* You aim to capture revenue from a public API. Monetization is the process of 
-productizing, metering, and billing for public API usage. 
-* You support a set of APIs supporting internal clients and desire to allocate 
-budget and cost appropriately based on usage.
-* You want to understand your clients API usage trends with data analysis 
+* Aim to capture revenue from a public API, where monetization is the 
+process of productizing and metering APIs and billing for their usage.
+* Providing a set of APIs supporting internal clients, allocating 
+budget or assigning costs appropriately based on usage.
+* Deeper understanding of your client's API usage trends 
+via data analysis in order to better allocate future investments.
 
 Regardless of the desired action, monetization starts with the process of 
-capturing actionable data on client API usage, this is referred to as 
-'Metering'. 
+capturing actionable data on client API usage. This is referred to as 
+'metering'. 
 
 API usage metering can be enabled with the 
-[Kong Billable Plugin](https://github.com/Kong/kong-plugin-billable) which 
-aggregates client API requests and response statuses across your Kong
-cluster for a variety of time frames. This will function as the source data
-used to further develop your monetization needs. 
+[Kong Billable Plugin](https://github.com/Kong/kong-plugin-billable), which 
+aggregates client API requests and response statuses from your Kong
+cluster across a variety of time frames. This data will serve as the 
+API utilization source of truth to support monetization outcomes.
 
-The remainder of the document provides a how-to guide for enabling the 
-Kong Billable Plugin and pulling metering data from it.
+This document provides a how-to guide for enabling the Kong Billable Plugin 
+and sourcing metering data from it.
 
 ### How-to
 
+This guide walks through the following steps allowing you to experiment 
+with the Kong Billable Plugin:
+* Run a new Kong GW locally using Docker
+* Install, configure, and enable the Kong Billable Plugin
+* Create mock services, clients, and secure routes for testing
+* Extract metering data from the Gateway which can be used for monetization 
+needs 
+
+Let's get started.
+
 Create a local empty folder to work in.
 ```
-mkdir monetization
+mkdir -p monetization && cd monetization
 ```
 
-Clone the Kong Billable Plugin source code repository locally. This contains 
-code which you will install as a Kong plugin to enble the metering of 
+Clone the Kong Billable Plugin source code repository locally. This 
+repository contains Kong plugin code which enbles the metering of 
 API usage on your Kong Gateway.
 ```
 git clone https://github.com/Kong/kong-plugin-billable.git
@@ -82,9 +94,11 @@ docker run --rm \
 ```
 
 Run the Kong gateway exposing various ports for usage on the host machine. 
-This command loads a Kong license into the environment variable 
-`KONG_LICENSE_DATA` which expects the license file path to be present in the 
-`KONG_LICENSE_FILE` variable. 
+
+> Note: The following command expects the environment variable 
+> `KONG_LICENSE_FILE` to contain a valid path to a Kong license file. 
+> This file is loaded into the environment variable `KONG_LICENSE_DATA` 
+> prior to running the gateway and passed to it via environment variable.
 ```
 KONG_LICENSE_DATA=$(cat $KONG_LICENSE_FILE) docker run -d --name kong-gateway \
   --network=kong-net -e "KONG_DATABASE=postgres" \

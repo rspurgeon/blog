@@ -1,4 +1,4 @@
-baseURL = ''
+baseURL = 'https://rspurgeon.github.io/developingideas'
 relativeURLs = 'true'
 languageCode = 'en-us'
 title = 'Developing Ideas'

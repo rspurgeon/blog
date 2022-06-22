@@ -6,4 +6,5 @@ publishDir: docs
 params:
   defaultTheme: light
   disableThemeToggle: false 
+  ShowCodeCopyButtons: true
 

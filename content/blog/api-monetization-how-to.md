@@ -19,16 +19,17 @@ actions on your client's API utilization. These actions are often financial
 in nature, however, there are other possible benefits when building towards a 
 monetization solution.
 
-Here are some common desired business outcomes:
+Common goals include: 
 
 * Aim to capture revenue from a public API, where monetization is the 
-process of productizing and metering APIs and billing for their usage.
-* Providing a set of APIs supporting internal clients, allocating 
+process of productizing and metering APIs and billing customers for 
+their usage.
+* Supporting internal API clients, allocating 
 budget or assigning costs appropriately based on usage.
-* Deeper understanding of your client's API usage trends 
-via data analysis in order to better allocate future investments.
+* Develop a deeper understanding of your client's API usage trends 
+using data analysis in order to better allocate future investments.
 
-Regardless of the desired action, monetization starts with the process of 
+Regardless of the desired goal, monetization starts with the process of 
 capturing actionable data on client API usage. This is referred to as 
 'metering'. 
 
@@ -41,9 +42,9 @@ API utilization source of truth to support monetization outcomes.
 This document provides a how-to guide for enabling the Kong Billable Plugin 
 and sourcing metering data from it.
 
-### How-to
+## How-to
 
-This guide walks through the following steps allowing you to experiment 
+This guide walks through the following steps to setup and experiment 
 with the Kong Billable Plugin:
 * Run a new Kong GW locally using Docker
 * Install, configure, and enable the Kong Billable Plugin
@@ -53,25 +54,20 @@ needs
 
 Let's get started.
 
+### Run a new Kong GW locally using Docker
+
 Create a local empty folder to work in.
-```
+```sh
 mkdir -p monetization && cd monetization
 ```
 
-Clone the Kong Billable Plugin source code repository locally. This 
-repository contains Kong plugin code which enbles the metering of 
-API usage on your Kong Gateway.
-```
-git clone https://github.com/Kong/kong-plugin-billable.git
-```
-
 Create an isolated Docker network for Kong Gateway and it's database
-```
+```sh
 docker network create kong-net
 ```
 
 Run a Postgres database for Kong 
-```
+```sh
 docker run -d --name kong-database \
   --network=kong-net \
   -p 5432:5432 \
@@ -82,7 +78,7 @@ docker run -d --name kong-database \
 ``` 
 
 Run the initial database migrations for this version of Kong 
-```
+```sh
 docker run --rm \
   --network=kong-net \
   -e "KONG_DATABASE=postgres" \
@@ -99,7 +95,7 @@ Run the Kong gateway exposing various ports for usage on the host machine.
 > `KONG_LICENSE_FILE` to contain a valid path to a Kong license file. 
 > This file is loaded into the environment variable `KONG_LICENSE_DATA` 
 > prior to running the gateway and passed to it via environment variable.
-```
+```sh
 KONG_LICENSE_DATA=$(cat $KONG_LICENSE_FILE) docker run -d --name kong-gateway \
   --network=kong-net -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-database" \
@@ -123,91 +119,135 @@ KONG_LICENSE_DATA=$(cat $KONG_LICENSE_FILE) docker run -d --name kong-gateway \
   kong/kong-gateway:2.8.1.1-alpine
 ```
 
-Copy the billable plugin code files into the running container.
+Once Kong GW is initialized, you are able to query the Admin API.
+```sh
+curl localhost:8001
 ```
+
+### Install, configure and enable the Kong Billable Plugin
+
+Clone the Kong Billable Plugin source code repository locally. This 
+repository contains Kong plugin code which enbles the metering of 
+API usage on your Kong Gateway.
+```sh
+git clone https://github.com/Kong/kong-plugin-billable.git
+```
+
+Copy the billable plugin code files into the running gateway container.
+```sh
 docker cp kong-plugin-billable/kong/plugins/billable \
   kong-gateway:/usr/local/share/lua/5.1/kong/plugins/
 ```
 
-The billable plugin has persistence which requires database setup. This 
-command instructs Kong to run migrations including those defined in the 
+The billable plugin uses persistence, which requires a database setup step. 
+This command instructs Kong to run migrations including those defined in the 
 billable plugin `migrations` source folder.
-```
+```sh
 docker exec --user kong -e KONG_PLUGINS="bundled,billable" \
   kong-gateway kong migrations up -vv
 ```
 
-Reload the gateway instructing it to load the custom billable plugin along 
-with all it's bundled plugins.
+You may notice log output similar to the following when the migrations 
+run properly.
+```sh
+billable: 000_init
+2022/06/22 14:02:47 [info] migrating billable on database 'kong'...
+2022/06/22 14:02:47 [debug] running migration: 000_init
+2022/06/22 14:02:47 [info] billable migrated up to: 000_init (executed)
+2022/06/22 14:02:47 [info] 1 migration processed
+2022/06/22 14:02:47 [info] 1 executed
 ```
+
+Reload the gateway instructing it to load the `billable` plugin along 
+with all it's `bundled` plugins.
+```sh
 docker exec --user kong -e KONG_PLUGINS="bundled,billable" \
   kong-gateway kong reload -vv
 ```
 
 Enable the billable plugin on the running gateway.
-```
+```sh
 curl http://localhost:8001/plugins -d name=billable
 ```
 
-Create an example service, which routes traffic to the 
+### Create mock services, clients, and secure routes
+
+Create a service which routes traffic to the 
 [MockBin](https://mockbin.org/) site which will assist in testing. 
-```
+```sh
 curl -i -X POST \
   --url http://localhost:8001/services/ \
   --data 'name=mock' \
   --data 'url=http://mockbin.org'
 ```
 
-Create a route to the new service, specifying that the `/mock` path will 
-be routed to the to the `mock` service
-```
+Create a new route instructing Kong to route requests for the `/mock` path 
+to the `mock` service
+```sh
 curl -i -X POST --url http://localhost:8001/services/mock/routes \
   --data 'paths[]=/mock' --data 'name=mock'
 ```
 
 Secure the new route with the 
 [Key Authentication](https://docs.konghq.com/hub/kong-inc/key-auth/) plugin.
-```
+Having authentication on the route enables the billable plugin to aggregate 
+usage data by the identifer of the client.
+```sh
 curl -X POST http://localhost:8001/routes/mock/plugins \
   --data "name=key-auth"
 ```
 
-The billable plugin requires consumers to aggregate API usage. Create few 
-different consumers that you can use to generate sample traffic for.
-```
+The billable plugin requires 
+[Consumers](https://docs.konghq.com/gateway/latest/admin-api/#consumer-object) 
+to aggregate API usage. Create few different Consumers that you can use to 
+generate sample traffic for.
+```sh
 curl -i -X POST --url http://localhost:8001/consumers/ --data "username=digit" 
 curl -i -X POST --url http://localhost:8001/consumers/ --data "username=poppy" 
 ```
 
-Create an authentication key for each Consumer:
-```
-curl -i -X POST --url http://localhost:8001/consumers/poppy/key-auth/ \ 
+Create an authentication key for each Consumer (`key=<secret-value>`).
+```sh
+curl -i -X POST --url http://localhost:8001/consumers/poppy/key-auth/ \
   --data 'key=poppy-secret'
 curl -i -X POST --url http://localhost:8001/consumers/digit/key-auth/ \
   --data 'key=digit-secret'
 ```
 
-Generate example traffic for each consumer. Repeat these commands multiple 
-times and randomly to simulate realistic API usage.
-```
+Generate some example traffic for each consumer. 
+Repeat these commands randomly multiple times to simulate 
+realistic API usage.
+```sh
 curl http://localhost:8000/mock/requests -H "apikey: poppy-secret"
 curl http://localhost:8000/mock/requests -H "apikey: digit-secret"
 ```
 
-View the metered usage 
-```
-curl http://localhost:8001/billable | jq
+### Extract metering data from the Gateay
+
+View the metered usage.
+```sh
+curl -s http://localhost:8001/billable
 ```
 
-Generate a report.
-```
+> Tip: Use the [jq](https://stedolan.github.io/jq/) JSON command line 
+> processor to work with responses from the gateway
+
+Finally, generate a report from the billable plugin. This example shows
+extracing montly usage in `csv` format and writing the data to a file
+with the current date. This reporting feature can integratd with billing
+providers, internal budgeting systems, or data analysis tools. For more
+options see the 
+[plugin API documentation](https://github.com/Kong/kong-plugin-billable#plugin-api).
+```sh
 curl -s "http://localhost:8001/billable?period=month&csv=true" \
   > mock-billing-data-$(date +"%m_%d_%Y").csv
 ```
 
 ## Summary
 
-With the data generated from the Billable Plugin, futher business actions 
-and insights can be developed. 
+With the metering data in hand, futher business actions and insights can be 
+developed. For more advanced out of the box solutions, seek out a 
+[Kong Partner](https://konghq.com/partners/find-a-partner) that may provide
+full featured monetization solutions.
 
 

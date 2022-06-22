@@ -7,4 +7,5 @@ params:
   defaultTheme: light
   disableThemeToggle: false 
   ShowCodeCopyButtons: true
+  ShowREadingTime: true
 

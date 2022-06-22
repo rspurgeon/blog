@@ -1,4 +1,4 @@
-baseURL: 'https://rspurgeon.github.io/developing-ideas/'
+baseURL: 'https://blog.spurgeon.dev/developing-ideas/'
 languageCode: en-us
 title: Developing Ideas
 theme: PaperMod
@@ -7,5 +7,5 @@ params:
   defaultTheme: light
   disableThemeToggle: false 
   ShowCodeCopyButtons: true
-  ShowREadingTime: true
+  ShowReadingTime: true
 

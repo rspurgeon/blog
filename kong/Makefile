@@ -24,6 +24,7 @@ kong-db: kong-init
 	@-make wait-for-db
 	@-sleep 1 # not sure why but this 1 second seems required to allow the socket to fully open and db to be ready
 
+kong: kong-oss
 kong-ce: kong-oss
 kong-oss: kong-destroy kong-db
 	@docker run --rm --network=kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=kong-database" kong:latest kong migrations bootstrap

@@ -4,8 +4,22 @@ title: Developing Ideas
 theme: PaperMod
 publishDir: docs
 params:
+  homeInfoParams:
+    Title: Rick Spurgeon 
+    Content: Senior software architect and developer with 20+ years of experience building software solutions across the FinTech, Electronic Trading, API, and Event Stream Processing spaces. I've called this site "Developing Ideas", a place where I will write about work and technology.
+  socialIcons:
+    - name: "GitHub"
+      url: "https://github.com/rspurgeon"
+    - name: "Twitter"
+      url: "https://twitter.com/spurgeonrick"
+    - name: "LinkedIn"
+      url: "https://www.linkedin.com/in/rjspurgeon/"
   defaultTheme: light
   disableThemeToggle: false 
   ShowCodeCopyButtons: true
   ShowReadingTime: true
-
+  ShowShareButtons: true
+  ShowBreadCrumbs: true
+  ShowPostNavLinks: false
+  ShowToc: false
+  TocOpen: true

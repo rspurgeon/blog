@@ -2,7 +2,11 @@
 title: "Kong Gateway in minutes"
 description: "A how-to guide for quickly starting a Kong Gateway"
 date: "2022-07-7"
+weight: 1
 author: Rick Spurgeon (rick.spurgeon@konghq.com)
+tags:
+- Kong
+- How-to
 notes:
 - The purpose of this how-to is to help someone get
   a GW started ASAP, _not_ to help them understand the how or why

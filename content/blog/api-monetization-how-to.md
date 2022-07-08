@@ -3,6 +3,9 @@ title: "API Monetization with Kong"
 description: "A how-to guide for enabling monetization with Kong Gateway"
 date: "2022-06-21"
 author: Rick Spurgeon (rick.spurgeon@konghq.com)
+tags:
+- Kong
+- How-to
 notes:
 - Some steps pulled from the Kong GW 
   Quickstart(https://docs.konghq.com/gateway/latest/get-started/quickstart/)

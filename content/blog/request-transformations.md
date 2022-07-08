@@ -2,8 +2,12 @@
 title: "Adding attributes to HTTP requests with Kong Gateway"
 description: "A no-code solution to modifying requests for your APIs"
 date: "2022-07-7"
+weight: 2
 author: Rick Spurgeon (rick.spurgeon@konghq.com)
 notes:
+tags:
+- Kong
+- How-to
 ---
 
 It's very common to have an HTTP service which accepts requests expecting a JSON document in the body.

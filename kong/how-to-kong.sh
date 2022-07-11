@@ -14,7 +14,7 @@ ensure_docker() {
 }
 destroy_kong() {
   echo ">destroy_kong" >> $LOG_FILE
-  echo Destroying previous how-to-kong containers
+  echo Destroying how-to-kong containers
   docker rm -f how-to-kong-gateway >> $LOG_FILE 2>&1
   docker rm -f how-to-kong-database >> $LOG_FILE 2>&1
   docker network rm how-to-kong-net >> $LOG_FILE 2>&1
@@ -91,6 +91,9 @@ main() {
   validate_kong
   echo "Try using curl to interact with your new Kong Gateway, for example:"
   echo "    curl -i -XGET http://localhost:8000/mock/requests"
+  echo
+  echo "To stop the gateway and database, run:"
+  echo "    docker rm -f how-to-kong-gateway && docker rm -f how-to-kong-database && docker network rm how-to-kong-net"
   echo "<main" >> $LOG_FILE
 }
 

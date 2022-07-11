@@ -4,6 +4,14 @@ KONG_VERSION="${KONG_VERSION:-2.8.1}"
 KONG_EE_VERSION="$KONG_VERSION.1"
 LOG_FILE="${LOG_FILE:-how-to-kong.log}"
 
+ensure_docker() {
+	{
+		docker ps -q
+	} || {
+		echo "Docker is not available"
+		return 2
+	}
+}
 destroy_kong() {
 	echo ">destroy_kong" >> $LOG_FILE
 	echo destroying previous how-to-kong containers
@@ -69,6 +77,9 @@ validate_kong() {
 main() {
 	echo ">main" >> $LOG_FILE
 	echo "Info logged to '$LOG_FILE'"
+	{ 
+		ensure_docker 
+	} || return 2
 	destroy_kong
 	init_kong
 	db

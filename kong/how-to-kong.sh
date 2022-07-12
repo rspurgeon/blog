@@ -1,7 +1,9 @@
 #!/bin/sh
 
-KONG_IMAGE_NAME="kong"
-KONG_IMAGE_TAG="${KONG_IMAGE_TAG:-2.8.1}"
+KONG_IMAGE_REPO="kong"
+KONG_IMAGE_NAME="kong-gateway"
+KONG_IMAGE_TAG="${KONG_IMAGE_TAG:-2.8.1.1-alpine}"
+KONG_IMAGE="${KONG_IMAGE_REPO}/${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG}"
 POSTGRES_IMAGE_NAME="postgres"
 POSTGRES_IMAGE_TAG="9.6"
 
@@ -45,7 +47,7 @@ ensure_docker() {
 docker_pull_images() {
   echo ">docker_pull_images" >> $LOG_FILE
   echo Downloading Docker images
-  docker pull ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && docker pull ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && echo_pass "Images ready"
+  docker pull ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && docker pull ${KONG_IMAGE} >> $LOG_FILE 2>&1 && echo_pass "Images ready"
   local rv=$?
   echo "<docker_pull_images" >> $LOG_FILE
   return $rv
@@ -86,7 +88,7 @@ wait_for_kong() {
 init_db() {
   echo ">init_db" >> $LOG_FILE
   local rv=0
-  docker run --rm --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} kong migrations bootstrap >> $LOG_FILE 2>&1
+  docker run --rm --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" ${KONG_IMAGE} kong migrations bootstrap >> $LOG_FILE 2>&1
   rv=$?
   echo "<init_db" >> $LOG_FILE
   return $rv
@@ -105,7 +107,7 @@ db() {
 kong() {
   echo ">kong" >> $LOG_FILE
   echo Starting Kong
-  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl" -P ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_kong && sleep 2
+  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl"  -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" -e "KONG_PROXY_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" -P ${KONG_IMAGE} >> $LOG_FILE 2>&1 && wait_for_kong && sleep 2
   local rv=$?
   echo "<kong" >> $LOG_FILE
   return $rv

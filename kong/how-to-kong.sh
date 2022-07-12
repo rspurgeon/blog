@@ -105,7 +105,7 @@ db() {
 kong() {
   echo ">kong" >> $LOG_FILE
   echo Starting Kong
-  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" -e "KONG_PROXY_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl" -P ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_kong && sleep 2
+  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl" -P ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_kong && sleep 2
   local rv=$?
   echo "<kong" >> $LOG_FILE
   return $rv

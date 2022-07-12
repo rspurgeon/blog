@@ -37,7 +37,7 @@ ensure_docker() {
 docker_pull_images() {
   echo ">docker_pull_images" >> $LOG_FILE
   echo Downloading Docker images
-  docker pull ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && docker pull ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && echo Images downloaded
+  docker pull ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && docker pull ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && echo Images ready 
   local rv=$?
   echo "<docker_pull_images" >> $LOG_FILE
   return $rv
@@ -159,14 +159,16 @@ main() {
 	DATA_PLANE_ENDPOINT=localhost:$(get_kong_dataplane_port)
 	CTRL_PLANE_ENDPOINT=localhost:$(get_kong_controlplane_port)
 
-	echo "Kong Data Plane endpoint:    $DATA_PLANE_ENDPOINT"
-	echo "Kong Control Plane endpoint: $CTRL_PLANE_ENDPOINT"
-
   validate_kong
 
   mock_service
 
-  echo "Try using curl to interact with your new Kong Gateway, for example:"
+	echo "Kong Data Plane endpoint    : $DATA_PLANE_ENDPOINT"
+	echo "Kong Control Plane endpoint : $CTRL_PLANE_ENDPOINT"
+
+	echo
+	echo "Kong is ready!"
+	echo "Try using curl to interact with your new Kong Gateway, for example:"
   echo "    curl -i -XGET http://$DATA_PLANE_ENDPOINT/mock/requests"
   echo
   echo "To stop the gateway and database, run:"

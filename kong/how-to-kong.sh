@@ -6,6 +6,7 @@ KONG_IMAGE_TAG="${KONG_IMAGE_TAG:-2.8.1.1-alpine}"
 KONG_IMAGE="${KONG_IMAGE_REPO}/${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG}"
 POSTGRES_IMAGE_NAME="postgres"
 POSTGRES_IMAGE_TAG="9.6"
+POSTGRES_IMAGE="${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG}"
 
 LOG_FILE="${LOG_FILE:-how-to-kong.log}"
 
@@ -47,7 +48,7 @@ ensure_docker() {
 docker_pull_images() {
   echo ">docker_pull_images" >> $LOG_FILE
   echo Downloading Docker images
-  docker pull ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && docker pull ${KONG_IMAGE} >> $LOG_FILE 2>&1 && echo_pass "Images ready"
+  docker pull ${POSTGRES_IMAGE} >> $LOG_FILE 2>&1 && docker pull ${KONG_IMAGE} >> $LOG_FILE 2>&1 && echo_pass "Images ready"
   local rv=$?
   echo "<docker_pull_images" >> $LOG_FILE
   return $rv
@@ -98,7 +99,7 @@ db() {
   echo ">db" >> $LOG_FILE
   echo Starting database
   # not certain why, but the 1 second sleep seems required to allow the socket to fully open and db to be ready
-  docker run -d --name how-to-kong-database --network=how-to-kong-net -p 5432:5432 -e "POSTGRES_USER=kong" -e "POSTGRES_DB=kong" -e "POSTGRES_PASSWORD=kong" ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_db && sleep 1 && init_db
+  docker run -d --name how-to-kong-database --network=how-to-kong-net -p 5432:5432 -e "POSTGRES_USER=kong" -e "POSTGRES_DB=kong" -e "POSTGRES_PASSWORD=kong" ${POSTGRES_IMAGE} >> $LOG_FILE 2>&1 && wait_for_db && sleep 1 && init_db
   local rv=$?
   echo "<db" >> $LOG_FILE
   return $rv

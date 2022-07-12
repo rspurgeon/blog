@@ -97,23 +97,34 @@ db() {
 kong() {
   echo ">kong" >> $LOG_FILE
   echo Starting Kong
-  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" -e "KONG_PROXY_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl" -p 8000:8000 -p 8443:8443 -p 127.0.0.1:8001:8001 -p 127.0.0.1:8444:8444 ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_kong && sleep 2
+  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" -e "KONG_PROXY_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl" -P ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_kong && sleep 2
   local rv=$?
   echo "<kong" >> $LOG_FILE
   return $rv
 }
 
+get_kong_dataplane_port() {
+  local endpoint=$(docker port how-to-kong-gateway 8000/tcp)
+  local arrIN=(${endpoint//:/ })
+  echo ${arrIN[1]}           
+}
+get_kong_controlplane_port() {
+  local endpoint=$(docker port how-to-kong-gateway 8001/tcp)
+  local arrIN=(${endpoint//:/ })
+  echo ${arrIN[1]}           
+}
+
 mock_service() {
   echo ">mock_service" >> $LOG_FILE
   echo "Adding mock service at path /mock"
-  curl -i -X POST http://localhost:8001/services --data name=mock --data url='http://mockbin.org' >> $LOG_FILE 2>&1
-  curl -i -X POST http://localhost:8001/services/mock/routes --data 'paths[]=/mock' --data name=mocking > $LOG_FILE 2>&1
+  curl -i -X POST $CTRL_PLANE_ENDPOINT/services --data name=mock --data url='http://mockbin.org' >> $LOG_FILE 2>&1
+  curl -i -X POST $CTRL_PLANE_ENDPOINT/services/mock/routes --data 'paths[]=/mock' --data name=mocking > $LOG_FILE 2>&1
   echo "<mock_service" >> $LOG_FILE
 }
 
 validate_kong() {
   echo ">validate_kong" >> $LOG_FILE
-  curl -i http://localhost:8001 >> /dev/null 2>&1 && echo "Kong admin API is up" || echo "issues starting kong"
+  curl -i $CTRL_PLANE_ENDPOINT >> /dev/null 2>&1 && echo "Kong admin API is up" || echo "Issues connecting to Kong, check $LOG_FILE"
   echo "<validate_kong" >> $LOG_FILE
 }
 
@@ -145,12 +156,18 @@ main() {
     echo "Kong initialization failure, check $LOG_FILE"; exit 1
   }
 
+	DATA_PLANE_ENDPOINT=localhost:$(get_kong_dataplane_port)
+	CTRL_PLANE_ENDPOINT=localhost:$(get_kong_controlplane_port)
+
+	echo "Kong Data Plane endpoint:    $DATA_PLANE_ENDPOINT"
+	echo "Kong Control Plane endpoint: $CTRL_PLANE_ENDPOINT"
+
   validate_kong
 
   mock_service
 
   echo "Try using curl to interact with your new Kong Gateway, for example:"
-  echo "    curl -i -XGET http://localhost:8000/mock/requests"
+  echo "    curl -i -XGET http://$DATA_PLANE_ENDPOINT/mock/requests"
   echo
   echo "To stop the gateway and database, run:"
   echo "    docker rm -f how-to-kong-gateway && docker rm -f how-to-kong-database && docker network rm how-to-kong-net"

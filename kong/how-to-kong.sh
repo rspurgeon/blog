@@ -1,68 +1,111 @@
 #!/bin/sh
 
-KONG_VERSION="${KONG_VERSION:-2.8.1}"
-KONG_EE_VERSION="$KONG_VERSION.1"
+KONG_IMAGE_NAME="kong"
+KONG_IMAGE_TAG="${KONG_IMAGE_TAG:-2.8.1}"
+POSTGRES_IMAGE_NAME="postgres"
+POSTGRES_IMAGE_TAG="9.6"
+
 LOG_FILE="${LOG_FILE:-how-to-kong.log}"
+
+retry() {
+    local -r -i max_wait="$1"; shift
+    local -r cmd="$@"
+
+    local -i sleep_interval=2
+    local -i curr_wait=0
+
+    until $cmd
+    do
+        if (( curr_wait >= max_wait ))
+        then
+            echo "ERROR: Command '${cmd}' failed after $curr_wait seconds."
+            return 1
+        else
+            curr_wait=$((curr_wait+sleep_interval))
+            sleep $sleep_interval
+        fi
+    done
+}
 
 ensure_docker() {
   {
     docker ps -q > /dev/null 2>&1
   } || {
-    echo "Docker is not available"
-    return 2
+    return 1
   }
 }
+docker_pull_images() {
+  echo ">docker_pull_images" >> $LOG_FILE
+  echo Downloading Docker images
+  docker pull ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && docker pull ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && echo Images downloaded
+  local rv=$?
+  echo "<docker_pull_images" >> $LOG_FILE
+  return $rv
+}
+
 destroy_kong() {
   echo ">destroy_kong" >> $LOG_FILE
-  echo Destroying how-to-kong containers
+  echo Destroying previous how-to-kong containers
   docker rm -f how-to-kong-gateway >> $LOG_FILE 2>&1
   docker rm -f how-to-kong-database >> $LOG_FILE 2>&1
   docker network rm how-to-kong-net >> $LOG_FILE 2>&1
   echo "<destroy_kong" >> $LOG_FILE
 }
 
-init_kong() {
-  echo ">init_kong" >> $LOG_FILE
+init() {
+  echo ">init" >> $LOG_FILE
   docker network create how-to-kong-net >> $LOG_FILE 2>&1 
-  echo "<init_kong" >> $LOG_FILE
+  local rv=$?
+  echo "<init" >> $LOG_FILE
+  return $rv
 }
 
 wait_for_db() {
   echo ">wait_for_db" >> $LOG_FILE 
-  while ! docker exec how-to-kong-database pg_isready >> $LOG_FILE 2>&1; do echo Waiting for database; sleep 1; done
-  echo Database is ready
+  local rv=0
+  retry 30 docker exec how-to-kong-database pg_isready >> $LOG_FILE 2>&1 && echo Database is ready || rv=$? 
   echo "<wait_for_db" >> $LOG_FILE 
+  return $rv
 }
 
 wait_for_kong() {
   echo ">wait_for_kong" >> $LOG_FILE
-  while ! docker exec how-to-kong-gateway kong health >> $LOG_FILE 2>&1; do echo Waiting for kong; sleep 2; done
-  echo Kong is ready
+  local rv=0
+  retry 30 docker exec how-to-kong-gateway kong health >> $LOG_FILE 2>&1 && echo Kong is healthy || rv=$? 
   echo "<wait_for_kong" >> $LOG_FILE
+}
+
+init_db() {
+  echo ">init_db" >> $LOG_FILE
+  local rv=0
+  docker run --rm --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} kong migrations bootstrap >> $LOG_FILE 2>&1
+  rv=$?
+  echo "<init_db" >> $LOG_FILE
+  return $rv
 }
 
 db() {
   echo ">db" >> $LOG_FILE
   echo Starting database
-  docker run -d --name how-to-kong-database --network=how-to-kong-net -p 5432:5432 -e "POSTGRES_USER=kong" -e "POSTGRES_DB=kong" -e "POSTGRES_PASSWORD=kong" postgres:9.6 >> $LOG_FILE 2>&1
-  wait_for_db
-  sleep 1 # not certain why, but this 1 second seems required to allow the socket to fully open and db to be ready
+  # not certain why, but the 1 second sleep seems required to allow the socket to fully open and db to be ready
+  docker run -d --name how-to-kong-database --network=how-to-kong-net -p 5432:5432 -e "POSTGRES_USER=kong" -e "POSTGRES_DB=kong" -e "POSTGRES_PASSWORD=kong" ${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_db && sleep 1 && init_db
+  local rv=$?
   echo "<db" >> $LOG_FILE
+  return $rv
 }
-init_db() {
-  echo ">init_db" >> $LOG_FILE
-  docker run --rm --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" kong:latest kong migrations bootstrap >> $LOG_FILE 2>&1
-  echo "<init_db" >> $LOG_FILE
-}
+
 kong() {
   echo ">kong" >> $LOG_FILE
-  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" -e "KONG_PROXY_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl" -p 8000:8000 -p 8443:8443 -p 127.0.0.1:8001:8001 -p 127.0.0.1:8444:8444 kong:${KONG_VERSION} >> $LOG_FILE 2>&1
+  echo Starting Kong
+  docker run -d --name how-to-kong-gateway --network=how-to-kong-net -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=how-to-kong-database" -e "KONG_PG_USER=kong" -e "KONG_PG_PASSWORD=kong" -e "KONG_CASSANDRA_CONTACT_POINTS=how-to-kong-database" -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" -e "KONG_PROXY_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl" -p 8000:8000 -p 8443:8443 -p 127.0.0.1:8001:8001 -p 127.0.0.1:8444:8444 ${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG} >> $LOG_FILE 2>&1 && wait_for_kong && sleep 2
+  local rv=$?
   echo "<kong" >> $LOG_FILE
+  return $rv
 }
 
 mock_service() {
   echo ">mock_service" >> $LOG_FILE
-  echo 'Adding mock service at path /mock'
+  echo "Adding mock service at path /mock"
   curl -i -X POST http://localhost:8001/services --data name=mock --data url='http://mockbin.org' >> $LOG_FILE 2>&1
   curl -i -X POST http://localhost:8001/services/mock/routes --data 'paths[]=/mock' --data name=mocking > $LOG_FILE 2>&1
   echo "<mock_service" >> $LOG_FILE
@@ -70,25 +113,42 @@ mock_service() {
 
 validate_kong() {
   echo ">validate_kong" >> $LOG_FILE
-  curl -i http://localhost:8001 >> /dev/null 2>&1 && echo "Kong is up" || echo "issues starting kong"
+  curl -i http://localhost:8001 >> /dev/null 2>&1 && echo "Kong admin API is up" || echo "issues starting kong"
   echo "<validate_kong" >> $LOG_FILE
 }
 
 main() {
+
   echo ">main" >> $LOG_FILE
   echo "Prepare to Kong"
-  echo "Info logged to '$LOG_FILE'"
-  { 
-    ensure_docker 
-  } || return 2
+  echo "Debugging info logged to '$LOG_FILE'"
+
+  ensure_docker || { 
+    echo "Docker is not available, check $LOG_FILE"; exit 1 
+  }
+
+  docker_pull_images || { 
+    echo "Download failed, check $LOG_FILE"; exit 1 
+  }
+  
   destroy_kong
-  init_kong
-  db
-  init_db
-  kong
-  wait_for_kong
-  mock_service
+
+  init || {
+    echo "Initalization steps failed, check $LOG_FILE"; exit 1
+  }
+
+  db || {
+    echo "DB initialization failure, check $LOG_FILE"; exit 1
+  }
+
+  kong || {
+    echo "Kong initialization failure, check $LOG_FILE"; exit 1
+  }
+
   validate_kong
+
+  mock_service
+
   echo "Try using curl to interact with your new Kong Gateway, for example:"
   echo "    curl -i -XGET http://localhost:8000/mock/requests"
   echo
@@ -98,3 +158,5 @@ main() {
 }
 
 main "$@"
+
+set +x;

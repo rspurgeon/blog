@@ -174,8 +174,8 @@ main() {
 	echo
 	echo_pass "Kong is ready!"
 	echo
-	echo "Kong Data Plane endpoint    : $DATA_PLANE_ENDPOINT"
-	echo "Kong Control Plane endpoint : $CTRL_PLANE_ENDPOINT"
+	echo "Kong Data Plane endpoint : $DATA_PLANE_ENDPOINT"
+	echo "Kong Admin API endpoint  : $CTRL_PLANE_ENDPOINT"
 	echo
 	echo "Try using curl to interact with your new Kong Gateway, for example:"
   echo "    curl -s http://$DATA_PLANE_ENDPOINT/mock/requests"

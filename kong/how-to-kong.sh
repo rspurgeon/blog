@@ -1,8 +1,8 @@
 #!/bin/sh
 
-KONG_IMAGE_REPO="kong"
-KONG_IMAGE_NAME="kong-gateway"
-KONG_IMAGE_TAG="${KONG_IMAGE_TAG:-2.8.1.1-alpine}"
+KONG_IMAGE_REPO="${KONG_IMAGE_REPO:-kong}"
+KONG_IMAGE_NAME="${KONG_IMAGE_NAME:-kong}"
+KONG_IMAGE_TAG="${KONG_IMAGE_TAG:-2.8.1}"
 KONG_IMAGE="${KONG_IMAGE_REPO}/${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG}"
 POSTGRES_IMAGE_NAME="postgres"
 POSTGRES_IMAGE_TAG="9.6"
@@ -82,7 +82,7 @@ wait_for_db() {
 wait_for_kong() {
   echo ">wait_for_kong" >> $LOG_FILE
   local rv=0
-  retry 30 docker exec how-to-kong-gateway kong health >> $LOG_FILE 2>&1 && echo_pass "Kong is healthy" || rv=$? 
+  retry 30 docker exec how-to-kong-gateway kong health --v >> $LOG_FILE 2>&1 && echo_pass "Kong is healthy" || rv=$? 
   echo "<wait_for_kong" >> $LOG_FILE
 }
 

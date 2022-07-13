@@ -3,7 +3,7 @@
 KONG_IMAGE_REPO="${KONG_IMAGE_REPO:-kong}"
 KONG_IMAGE_NAME="${KONG_IMAGE_NAME:-kong}"
 KONG_IMAGE_TAG="${KONG_IMAGE_TAG:-2.8.1}"
-KONG_IMAGE="${KONG_IMAGE_REPO}/${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG}"
+
 POSTGRES_IMAGE_NAME="postgres"
 POSTGRES_IMAGE_TAG="9.6"
 POSTGRES_IMAGE="${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG}"
@@ -11,11 +11,11 @@ POSTGRES_IMAGE="${POSTGRES_IMAGE_NAME}:${POSTGRES_IMAGE_TAG}"
 LOG_FILE="${LOG_FILE:-how-to-kong.log}"
 
 echo_fail() {
-	printf "\e[31m✘ \033\e[0m$@\n"
+  printf "\e[31m✘ \033\e[0m$@\n"
 }
 
 echo_pass() {
-	printf "\e[32m✔ \033\e[0m$@\n"
+  printf "\e[32m✔ \033\e[0m$@\n"
 }
 
 retry() {
@@ -139,11 +139,34 @@ validate_kong() {
   echo "<validate_kong" >> $LOG_FILE
 }
 
+usage() {
+  echo "usage: $0 [-r <Image Registry>] [-i <Image Name>] [-t <Image Tag>]"
+  exit 1
+}
+
 main() {
+  while getopts ":r:i:t:h" o; do
+    case "${o}" in
+      r)
+        KONG_IMAGE_REPO=${OPTARG}
+        ;;
+      i)
+        KONG_IMAGE_NAME=${OPTARG}
+        ;;
+      t)
+        KONG_IMAGE_TAG=${OPTARG}
+        ;;
+      h)
+        usage
+        ;;
+    esac
+  done
 
   echo ">main" >> $LOG_FILE
   echo "Prepare to Kong"
   echo "Debugging info logged to '$LOG_FILE'"
+
+  KONG_IMAGE="${KONG_IMAGE_REPO}/${KONG_IMAGE_NAME}:${KONG_IMAGE_TAG}"
 
   ensure_docker || { 
     echo "Docker is not available, check $LOG_FILE"; exit 1 
@@ -167,24 +190,24 @@ main() {
     echo "Kong initialization failure, check $LOG_FILE"; exit 1
   }
 
-	DATA_PLANE_ENDPOINT=localhost:$(get_kong_dataplane_port)
-	CTRL_PLANE_ENDPOINT=localhost:$(get_kong_controlplane_port)
+  DATA_PLANE_ENDPOINT=localhost:$(get_kong_dataplane_port)
+  CTRL_PLANE_ENDPOINT=localhost:$(get_kong_controlplane_port)
 
   validate_kong
 
   mock_service
 
-	echo
-	echo_pass "Kong is ready!"
-	echo
-	echo "Kong Data Plane endpoint : $DATA_PLANE_ENDPOINT"
-	echo "Kong Admin API endpoint  : $CTRL_PLANE_ENDPOINT"
-	echo
-	echo "Try using curl to interact with your new Kong Gateway, for example:"
+  echo
+  echo_pass "Kong is ready!"
+  echo
+  echo "Kong Data Plane endpoint : $DATA_PLANE_ENDPOINT"
+  echo "Kong Admin API endpoint  : $CTRL_PLANE_ENDPOINT"
+  echo
+  echo "Try using curl to interact with your new Kong Gateway, for example:"
   echo "    curl -s http://$DATA_PLANE_ENDPOINT/mock/requests"
   echo
-	echo "To administer the gateway, use the Admin API:"
-	echo "    curl -s http://$CTRL_PLANE_ENDPOINT/"
+  echo "To administer the gateway, use the Admin API:"
+  echo "    curl -s http://$CTRL_PLANE_ENDPOINT/"
   echo
   echo "To stop the gateway and database, run:"
   echo "    docker rm -f how-to-kong-gateway && docker rm -f how-to-kong-database && docker network rm how-to-kong-net"

@@ -129,7 +129,7 @@ mock_service() {
   echo ">mock_service" >> $LOG_FILE
   echo "Adding mock service at path /mock"
   curl -i -X POST $CTRL_PLANE_ENDPOINT/services --data name=mock --data url='http://mockbin.org' >> $LOG_FILE 2>&1
-  curl -i -X POST $CTRL_PLANE_ENDPOINT/services/mock/routes --data 'paths[]=/mock' --data name=mocking > $LOG_FILE 2>&1
+  curl -i -X POST $CTRL_PLANE_ENDPOINT/services/mock/routes --data 'paths[]=/mock' --data name=mock > $LOG_FILE 2>&1
   echo "<mock_service" >> $LOG_FILE
 }
 
